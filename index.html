@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Knife AI Assistant</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f5f5f5;
+        }
+
+        .chat-container {
+            width: 400px;
+            max-width: 95%;
+            margin: 50px auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: #222;
+            color: white;
+            padding: 18px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .chat-messages {
+            height: 400px;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .message {
+            margin-bottom: 12px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            max-width: 80%;
+            line-height: 1.4;
+        }
+
+        .user-message {
+            background: #e5e5e5;
+            margin-left: auto;
+        }
+
+        .ai-message {
+            background: #222;
+            color: white;
+            margin-right: auto;
+        }
+
+        .chat-input {
+            display: flex;
+            border-top: 1px solid #ddd;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            outline: none;
+            font-size: 15px;
+        }
+
+        .chat-input button {
+            padding: 15px 20px;
+            border: none;
+            background: #222;
+            color: white;
+            cursor: pointer;
+        }
+
+        .chat-input button:hover {
+            background: #444;
+        }
+        .product-card {
+            background: #fff;
+            border: 1px solid #e5e5e5;
+            border-radius: 14px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .product-content {
+            padding: 16px;
+        }
+
+        .product-content h3 {
+            margin: 0 0 10px;
+            font-size: 17px;
+            color: #222;
+        }
+
+        .product-description {
+            margin: 0 0 14px;
+            color: #666;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+
+        .product-price {
+            font-size: 20px;
+            font-weight: 700;
+            color: #111;
+            margin-bottom: 8px;
+        }
+
+        .product-stock {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 14px;
+        }
+
+        .in-stock {
+            color: #16833b;
+        }
+
+        .out-of-stock {
+            color: #c62828;
+        }
+
+        .product-button {
+            display: block;
+            text-align: center;
+            background: #222;
+            color: #fff;
+            padding: 12px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .product-button:hover {
+            background: #444;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="chat-container">
+
+    <div class="chat-header">
+        🔪 Knife AI Assistant
+    </div>
+
+    <div id="chatMessages" class="chat-messages">
+
+        <div class="message ai-message">
+            Hi! 👋 What kind of knife are you looking for?
+        </div>
+
+    </div>
+
+    <div class="chat-input">
+
+        <input
+            type="text"
+            id="messageInput"
+            placeholder="Ask about our knives..."
+        >
+
+        <button onclick="sendMessage()">
+            Send
+        </button>
+
+    </div>
+
+</div>
+
+
+<script>
+
+ let conversationHistory = [];   
+
+async function sendMessage() {
+
+    const input = document.getElementById("messageInput");
+    const message = input.value.trim();
+    if (!message) {
+        return;
+    }
+
+    conversationHistory.push({
+        role: "user",
+        content: message
+    });
+
+    const chatMessages = document.getElementById("chatMessages");
+
+    // Show user's message
+    chatMessages.innerHTML += `
+        <div class="message user-message">
+            ${message}
+        </div>
+    `;
+
+    // Clear input
+    input.value = "";
+
+    try {
+
+        const response = await fetch("http://localhost:3000/chat", {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                message: message,
+                history: conversationHistory
+            })
+
+        });
+
+        const data = await response.json();
+
+        if (data.message) {
+
+        chatMessages.innerHTML += `
+            <div class="message ai-message">
+            ${data.message}
+            </div>
+        `;
+
+        }
+
+        conversationHistory.push({
+            role: "assistant",
+            content: data.products.map(product => ({
+                id: product.id,
+                name: product.name,
+                price: product.price,
+                image: product.image,
+                url: product.url,
+                stock_status: product.stock_status,
+                description: product.description
+            }))
+            });
+
+        console.log(data);
+
+        // Show AI response
+        // Show products only when products were actually returned
+            if (data.products && data.products.length > 0) {
+
+                data.products.forEach(product => {
+
+                    chatMessages.innerHTML += `
+                        <div class="product-card">
+
+                            ${
+                                product.image
+                                    ? `<img
+                                        src="${product.image}"
+                                        alt="${product.name}"
+                                        class="product-image"
+                                    >`
+                                    : ""
+                            }
+
+                            <div class="product-content">
+
+                                <h3>${product.name}</h3>
+
+                                <p class="product-description">
+                                    ${product.description}
+                                </p>
+
+                                <div class="product-price">
+                                    ${product.price}
+                                </div>
+
+                                <div class="product-stock ${
+                                    product.stock_status === "instock"
+                                        ? "in-stock"
+                                        : "out-of-stock"
+                                }">
+                                    ${
+                                        product.stock_status === "instock"
+                                            ? "In Stock"
+                                            : "Out of Stock"
+                                    }
+                                </div>
+
+                                <a
+                                    href="${product.url}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="product-button"
+                                >
+                                    View Product
+                                </a>
+
+                            </div>
+
+                        </div>
+                    `;
+
+                });
+
+            }
+
+        // Scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    } catch (error) {
+
+        console.error(error);
+
+        chatMessages.innerHTML += `
+            <div class="message ai-message">
+                Sorry, something went wrong. Please try again.
+            </div>
+        `;
+
+    }
+
+    console.log(
+        "FIRST PRODUCT IMAGES:",
+        data.products?.[0]?.image
+    );
+
+}
+
+</script>
+
+</body>
+</html>

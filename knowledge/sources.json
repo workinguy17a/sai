@@ -1,0 +1,31 @@
+{
+  "urls": [
+    {
+      "url": "https://perkinknives.net/age-policy/",
+      "type": "store_policy",
+      "title": "Age Policy"
+    },
+    {
+      "url": "https://perkinknives.net/term-and-condition/",
+      "type": "store_policy",
+      "title": "Terms and Conditions"
+    },
+    {
+      "url": "https://perkinknives.net/refund-and-returns-policy/",
+      "type": "store_policy",
+      "title": "Refund and Returns Policy"
+    },
+    {
+      "url": "https://perkinknives.net/delivery-policy-and-payment-confirmation/",
+      "type": "store_policy",
+      "title": "Delivery Policy and Payment Confirmation"
+    }
+  ],
+  "files": [
+    {
+      "file": "knowledge/documents/knife-handle-guide.txt",
+      "type": "txt",
+      "title": "Knife Handle Materials Guide"
+    }
+  ]
+}
