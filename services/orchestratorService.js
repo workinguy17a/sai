@@ -184,6 +184,13 @@ requirements.
 
 Do not generate unnecessary variations.
 
+SALE FILTER:
+
+Set sale_only to true when the customer asks for products currently on sale,
+discounted products, sale items, or current deals on products.
+
+Otherwise set sale_only to false.
+
 KNOWLEDGE QUERY:
 
 Create a standalone knowledge query when knowledge is required.
@@ -256,8 +263,8 @@ Schema:
 
   "requirements": [],
 
-  "preferences": [],
-
+  "preferences": [], 
+  "sale_only": false,
   "constraints": {
     "min_price": null,
     "max_price": null
@@ -356,6 +363,9 @@ function normalizeRetrievalPlan(plan = {}) {
       typeof plan.product_query === "string"
         ? plan.product_query.trim()
         : "",
+    
+    sale_only:
+      plan.sale_only === true,
 
     knowledge_query:
       typeof plan.knowledge_query === "string"

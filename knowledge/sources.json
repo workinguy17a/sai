@@ -26,6 +26,11 @@
       "file": "knowledge/documents/knife-handle-guide.txt",
       "type": "txt",
       "title": "Knife Handle Materials Guide"
+    },
+    {
+      "file": "knowledge/documents/shipping-guide.pdf",
+      "type": "store_policy",
+      "title": "Shipping Guide"
     }
   ]
 }

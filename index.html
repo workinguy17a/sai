@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Knife AI Assistant</title>
+    <title>Sai | Store Assistant</title>
 
     <style>
         body {
@@ -148,6 +148,87 @@
         .product-button:hover {
             background: #444;
         }
+
+        .sale-price {
+            color: #b42318;
+            font-weight: 700;
+        }
+
+        .regular-price {
+            color: #777;
+            margin-left: 6px;
+            font-size: 0.9em;
+        }
+
+        .sale-badge {
+            color: #b42318;
+            margin-left: 6px;
+            font-size: 0.8em;
+            font-weight: 700;
+        }
+        body {
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 16px;
+            box-sizing: border-box;
+            background: #f3f0eb;
+        }
+
+        .chat-container {
+            width: min(100%, 460px);
+            height: min(780px, calc(100dvh - 32px));
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #e6e0d7;
+        }
+
+        .chat-header {
+            background: #252522;
+            padding: 20px;
+            flex-shrink: 0;
+        }
+
+        .chat-messages {
+            flex: 1;
+            min-height: 0;
+            height: auto;
+            background: #fcfbf9;
+            scroll-behavior: smooth;
+        }
+
+        .chat-input {
+            flex-shrink: 0;
+            background: #fff;
+        }
+
+        .chat-input input {
+            min-width: 0;
+        }
+
+        .chat-input button {
+            background: #8a642f;
+            font-weight: 600;
+        }
+
+        .chat-input button:hover {
+            background: #704e23;
+        }
+
+        @media (max-width: 520px) {
+            body {
+                padding: 0;
+            }
+
+            .chat-container {
+                width: 100%;
+                height: 100dvh;
+                max-width: none;
+                border: 0;
+                border-radius: 0;
+            }
+        }
     </style>
 </head>
 
@@ -156,13 +237,13 @@
 <div class="chat-container">
 
     <div class="chat-header">
-        🔪 Knife AI Assistant
+        Sai | Store Assistant
     </div>
 
     <div id="chatMessages" class="chat-messages">
 
         <div class="message ai-message">
-            Hi! 👋 What kind of knife are you looking for?
+            Hi, I’m Sai, your store assistant. I’m here to help you through your shopping journey. Ask me about products, orders, or store information.
         </div>
 
     </div>
@@ -185,8 +266,42 @@
 
 
 <script>
+const widgetKey = "02f34ac7-23cb-4053-b924-518b56e8525e";
+ let conversationHistory = [];
+ 
+ let visitorId = localStorage.getItem("saiVisitorId");
 
- let conversationHistory = [];   
+if (!visitorId) {
+    visitorId = crypto.randomUUID();
+    localStorage.setItem("saiVisitorId", visitorId);
+}
+ 
+ document
+    .getElementById("messageInput")
+    .addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            sendMessage();
+        }
+    });
+
+    function formatPrice(value, currencyCode) {
+    const amount = Number(value);
+    const code = String(currencyCode || "").trim().toUpperCase();
+
+    if (!Number.isFinite(amount)) {
+        return "Price unavailable";
+    }
+
+    if (!/^[A-Z]{3}$/.test(code)) {
+        return `${amount.toFixed(2)} (currency unavailable)`;
+    }
+
+    return new Intl.NumberFormat("en-GB", {
+        style: "currency",
+        currency: code
+    }).format(amount);
+}
 
 async function sendMessage() {
 
@@ -225,7 +340,9 @@ async function sendMessage() {
 
             body: JSON.stringify({
                 message: message,
-                history: conversationHistory
+                history: conversationHistory,
+                visitorId: visitorId,
+                widgetKey: widgetKey
             })
 
         });
@@ -248,6 +365,10 @@ async function sendMessage() {
                 id: product.id,
                 name: product.name,
                 price: product.price,
+                currency: product.currency,
+                regular_price: product.regular_price,
+                sale_price: product.sale_price,
+                on_sale: product.on_sale,
                 image: product.image,
                 url: product.url,
                 stock_status: product.stock_status,
@@ -285,7 +406,13 @@ async function sendMessage() {
                                 </p>
 
                                 <div class="product-price">
-                                    ${product.price}
+                                    ${
+                                        product.on_sale
+                                            ? `<span class="sale-price">${formatPrice(product.price, product.currency)}</span>
+                                            <span class="regular-price"><s>${formatPrice(product.regular_price, product.currency)}</s></span>
+                                            <span class="sale-badge">Sale</span>`
+                                            : formatPrice(product.price, product.currency)
+                                    }
                                 </div>
 
                                 <div class="product-stock ${
@@ -333,10 +460,10 @@ async function sendMessage() {
 
     }
 
-    console.log(
-        "FIRST PRODUCT IMAGES:",
-        data.products?.[0]?.image
-    );
+    // console.log(
+    //     "FIRST PRODUCT IMAGES:",
+    //     data.products?.[0]?.image
+    // );
 
 }
 
