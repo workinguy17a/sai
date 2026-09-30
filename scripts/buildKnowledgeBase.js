@@ -5,22 +5,28 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 import { PDFParse } from "pdf-parse";
 import OpenAI from "openai";
+import { pool } from "../services/databaseService.js";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
 const ROOT_DIR = process.cwd();
+const storeId = process.argv[2];
 
-const SOURCES_FILE = path.join(
+if (!/^[1-9]\d*$/.test(storeId || "")) {
+  throw new Error("Usage: npm run knowledge:build -- <storeId>");
+}
+
+const STORE_DIR = path.join(
   ROOT_DIR,
   "knowledge",
-  "sources.json"
+  "stores",
+  storeId
 );
 
 const INDEX_FILE = path.join(
-  ROOT_DIR,
-  "knowledge",
+  STORE_DIR,
   "index.json"
 );
 
@@ -202,12 +208,43 @@ async function buildKnowledgeBase() {
   console.log("Building Knowledge Base");
   console.log("=================================");
 
-  const sourcesRaw = await fs.readFile(
-    SOURCES_FILE,
-    "utf8"
-  );
+  // const sourcesRaw = await fs.readFile(
+  //   SOURCES_FILE,
+  //   "utf8"
+  // );
 
-  const sources = JSON.parse(sourcesRaw);
+  // const sources = JSON.parse(sourcesRaw);
+
+  const sourceResult = await pool.query(
+  `SELECT source_kind, source_type, title, url, file_path
+   FROM knowledge_sources
+   WHERE store_id = $1
+     AND is_active = TRUE
+   ORDER BY id`,
+  [storeId]
+);
+
+const sources = {
+  urls: sourceResult.rows
+    .filter(source => source.source_kind === "url")
+    .map(source => ({
+      url: source.url,
+      type: source.source_type,
+      title: source.title
+    })),
+
+  files: sourceResult.rows
+    .filter(source => source.source_kind === "file")
+    .map(source => ({
+      file: source.file_path,
+      type: source.source_type,
+      title: source.title
+    }))
+};
+
+if (sources.urls.length + sources.files.length === 0) {
+  throw new Error(`No active knowledge sources found for store ${storeId}.`);
+}
 
   const documents = [];
 
@@ -346,8 +383,11 @@ async function buildKnowledgeBase() {
      SAVE INDEX
   ----------------------------------- */
 
+  await fs.mkdir(STORE_DIR, { recursive: true });
+
   const index = {
     version: 1,
+    store_id: Number(storeId),
     created_at: new Date().toISOString(),
     embedding_model: "text-embedding-3-small",
     chunk_size: CHUNK_SIZE,
@@ -386,5 +426,8 @@ buildKnowledgeBase().catch(error => {
 
   console.error(error);
 
-  process.exit(1);
-});
+  process.exitCode = 1
+})
+.finally(async () => {
+    await pool.end();
+  });

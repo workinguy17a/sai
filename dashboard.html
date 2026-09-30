@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sai Store Dashboard</title>
+  <style>
+    body { font: 16px Arial, sans-serif; max-width: 950px; margin: 40px auto; padding: 0 16px; color: #222; }
+    input, button { font: inherit; padding: 9px; margin: 4px 0; }
+    input { box-sizing: border-box; }
+    button { cursor: pointer; }
+    .row { border: 1px solid #ddd; border-radius: 8px; padding: 14px; margin: 10px 0; }
+    .muted { color: #666; }
+    #status { margin: 12px 0; }
+    #loginForm input { display: block; width: min(100%, 360px); }
+    #addForm input { width: min(100%, 300px); }
+  </style>
+</head>
+<body>
+  <h1>Sai Store Dashboard</h1>
+  <p id="status" class="muted"></p>
+
+  <section id="loginPanel">
+    <h2>Sign in</h2>
+    <form id="loginForm" method="post">
+      <input name="email" type="email" placeholder="Email" required>
+      <input name="password" type="password" placeholder="Password" required>
+      <button type="submit">Sign in</button>
+    </form>
+  </section>
+
+  <section id="dashboardPanel" hidden>
+    <p id="account"></p>
+    <button id="logoutButton" type="button">Log out</button>
+    <section>
+        <h2>Store settings</h2>
+        <div id="storeSettings" class="row">
+  <p id="integrationStatus">Loading integration status…</p>
+  <p>Public widget key: <code id="widgetKey"></code></p>
+
+  <form id="storeSettingsForm">
+    <label>
+      Store name
+      <input name="name" required maxlength="120">
+    </label>
+    <br>
+
+            <label>
+            Website URL
+            <input name="website_url" type="url" required>
+            </label>
+            <br>
+
+            <label>
+            Currency code (for example GBP or USD)
+            <input name="currency_code" required maxlength="3">
+            </label>
+            <br>
+
+            <label>
+            Allowed origins (one URL per line)
+            <textarea name="allowed_origins" rows="3" required></textarea>
+            </label>
+            <br>
+
+            <button type="submit">Save store settings</button>
+        </form>
+
+        
+
+        <p id="settingsStatus" class="muted"></p>
+
+        <form id="woocommerceCredentialsForm">
+  <h3>Update WooCommerce API credentials</h3>
+  <p class="muted">
+    Existing credentials are never shown. Enter both fields to replace them.
+  </p>
+
+  <label>
+    Consumer key
+    <input
+      name="consumerKey"
+      type="password"
+      autocomplete="new-password"
+      required
+    >
+  </label>
+  <br>
+
+  <label>
+    Consumer secret
+    <input
+      name="consumerSecret"
+      type="password"
+      autocomplete="new-password"
+      required
+    >
+  </label>
+  <br>
+
+  <button type="submit">Save WooCommerce credentials</button>
+</form>
+<p id="credentialsStatus" class="muted"></p>
+        </div>
+    </section>
+    <h2>Knowledge sources</h2>
+    <button id="rebuildButton" type="button">Rebuild Knowledge Base</button>
+    <p id="knowledgeStatus" class="muted">Checking knowledge-base status…</p>
+    <form id="addForm">
+      <input name="title" placeholder="Source title" required>
+      <input name="url" type="url" placeholder="https://example.com/policy" required>
+      <input name="source_type" value="store_policy" required>
+      <button type="submit">Add website source</button>
+    </form>
+
+    <form id="uploadForm">
+        <input name="title" placeholder="File title" required>
+        <input name="source_type" value="store_policy" required>
+        <input
+            name="file"
+            type="file"
+            accept=".pdf,.txt,application/pdf,text/plain"
+            required
+        >
+        <button type="submit">Upload PDF or TXT</button>
+    </form>
+    <p class="muted">PDF and TXT files only; maximum size 10 MB.</p>
+
+    <div id="sources"></div>
+  </section>
+
+  <script>
+    const statusEl = document.getElementById("status");
+    const loginPanel = document.getElementById("loginPanel");
+    const dashboardPanel = document.getElementById("dashboardPanel");
+    const sourcesEl = document.getElementById("sources");
+    const knowledgeStatusEl = document.getElementById("knowledgeStatus");
+    const storeSettingsEl = document.getElementById("storeSettings");
+    const storeSettingsForm = document.getElementById("storeSettingsForm");
+    const integrationStatusEl = document.getElementById("integrationStatus");
+    const widgetKeyEl = document.getElementById("widgetKey");
+    const settingsStatusEl = document.getElementById("settingsStatus");
+    const woocommerceCredentialsForm = document.getElementById("woocommerceCredentialsForm");
+    const credentialsStatusEl = document.getElementById("credentialsStatus");
+
+    async function api(url, options = {}) {
+        const isFormData = options.body instanceof FormData;
+
+        const response = await fetch(url, {
+            credentials: "same-origin",
+            ...options,
+            headers: {
+            ...(!isFormData && options.body
+                ? { "Content-Type": "application/json" }
+                : {}),
+            ...(options.headers || {})
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || "Request failed.");
+        }
+
+        return data;
+    }
+
+    function showDashboard(user) {
+      loginPanel.hidden = true;
+      dashboardPanel.hidden = false;
+      document.getElementById("account").textContent =
+        `Signed in as ${user.email} · Store ${user.storeId}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;",
+        '"': "&quot;", "'": "&#39;"
+      })[char]);
+    }
+
+    async function loadSources() {
+      const data = await api("/dashboard/knowledge-sources");
+      sourcesEl.innerHTML = data.sources.map(source => `
+        <article class="row">
+          <strong>${escapeHtml(source.title)}</strong>
+          <div class="muted">${escapeHtml(source.source_kind)} · ${escapeHtml(source.source_type)}</div>
+          <div>${escapeHtml(source.url || source.file_path || "")}</div>
+          <div>Status: ${source.is_active ? "Active" : "Inactive"}</div>
+          ${source.source_kind === "url"
+            ? `<button type="button" data-edit="${escapeHtml(source.id)}">Edit</button>`
+            : ""}
+          <button type="button" data-toggle="${escapeHtml(source.id)}" data-active="${source.is_active}">
+            ${source.is_active ? "Deactivate" : "Activate"}
+          </button>
+        </article>
+      `).join("") || "<p>No knowledge sources yet.</p>";
+      await loadKnowledgeBaseStatus();
+    }
+
+    async function loadStoreSettings() {
+        try {
+            const data = await api("/dashboard/store-settings");
+            const store = data.store;
+
+            storeSettingsForm.elements.name.value = store.name || "";
+            storeSettingsForm.elements.website_url.value = store.website_url || "";
+            storeSettingsForm.elements.currency_code.value =
+            (store.currency_code || "").trim();
+
+            storeSettingsForm.elements.allowed_origins.value =
+            Array.isArray(store.allowed_origins)
+                ? store.allowed_origins.join("\n")
+                : "";
+
+            widgetKeyEl.textContent = store.public_widget_key || "Not set";
+
+            integrationStatusEl.innerHTML = data.integrations.length
+            ? data.integrations.map(item =>
+                `${escapeHtml(item.platform)}: ${item.configured ? "Connected" : "Not configured"}`
+                ).join("<br>")
+            : "No integrations configured";
+        } catch (error) {
+            settingsStatusEl.textContent = error.message;
+        }
+    }
+
+    async function loadKnowledgeBaseStatus() {
+        try {
+            const data = await api("/dashboard/knowledge-base-status");
+
+            if (!data.built_at) {
+            knowledgeStatusEl.textContent =
+                "Not built yet. Rebuild the knowledge base to apply sources.";
+            return;
+            }
+
+            const builtAt = new Date(data.built_at).toLocaleString();
+
+            knowledgeStatusEl.textContent = data.needs_rebuild
+            ? `Changes need rebuilding. Last successful build: ${builtAt}`
+            : `Knowledge base is up to date. Last build: ${builtAt}`;
+        } catch (error) {
+            knowledgeStatusEl.textContent = error.message;
+        }
+    }
+    
+    
+
+    document.getElementById("loginForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const loginForm = event.currentTarget;
+      const form = new FormData(loginForm);
+      statusEl.textContent = "Signing in…";
+      try {
+        const data = await api("/dashboard/login", {
+          method: "POST",
+          body: JSON.stringify({
+            email: form.get("email"),
+            password: form.get("password")
+          })
+        });
+        showDashboard(data.user);
+        await loadSources();
+        await loadStoreSettings();
+        statusEl.textContent = "";
+        loginForm.reset();
+      } catch (error) {
+        statusEl.textContent = error.message;
+      }
+    });
+
+    document.getElementById("addForm").addEventListener("submit", async event => {
+      event.preventDefault();
+        const formElement = event.currentTarget;
+        const form = new FormData(formElement);
+      try {
+        await api("/dashboard/knowledge-sources", {
+          method: "POST",
+          body: JSON.stringify({
+            title: form.get("title"),
+            url: form.get("url"),
+            source_type: form.get("source_type")
+          })
+        });
+        formElement.reset();
+        formElement.elements.source_type.value = "store_policy";
+        await loadSources();
+        statusEl.textContent = "Website source added.";
+      } catch (error) {
+        statusEl.textContent = error.message;
+      }
+    });
+
+    sourcesEl.addEventListener("click", async event => {
+      const toggleId = event.target.dataset.toggle;
+      const editId = event.target.dataset.edit;
+
+      try {
+        if (toggleId) {
+          const currentlyActive = event.target.dataset.active === "true";
+          await api(`/dashboard/knowledge-sources/${toggleId}`, {
+            method: "PATCH",
+            body: JSON.stringify({ is_active: !currentlyActive })
+          });
+          await loadSources();
+          statusEl.textContent = "Source status updated.";
+        }
+
+        if (editId) {
+          const source = (await api("/dashboard/knowledge-sources")).sources
+            .find(item => String(item.id) === editId);
+          if (!source) throw new Error("Source not found.");
+
+          const title = prompt("Source title:", source.title);
+          if (title === null) return;
+          const url = prompt("Source URL:", source.url);
+          if (url === null) return;
+          const source_type = prompt("Source type:", source.source_type);
+          if (source_type === null) return;
+
+          await api(`/dashboard/knowledge-sources/${editId}`, {
+            method: "PUT",
+            body: JSON.stringify({ title, url, source_type })
+          });
+          await loadSources();
+          statusEl.textContent = "Source updated.";
+        }
+      } catch (error) {
+        statusEl.textContent = error.message;
+      }
+    });
+
+    document.getElementById("uploadForm").addEventListener("submit", async event => {
+        event.preventDefault();
+        const formElement = event.currentTarget;
+        const formData = new FormData(formElement);
+
+        statusEl.textContent = "Uploading file…";
+
+        try {
+            const data = await api("/dashboard/knowledge-sources/upload", {
+            method: "POST",
+            body: formData
+            });
+
+            formElement.reset();
+            formElement.elements.source_type.value = "store_policy";
+            await loadSources();
+            statusEl.textContent = `Uploaded ${data.source.title}. Rebuild the knowledge base to apply it.`;
+        } catch (error) {
+            statusEl.textContent = error.message;
+        }
+        });
+
+    document.getElementById("rebuildButton").addEventListener("click", async event => {
+        const button = event.currentTarget;
+        button.disabled = true;
+        statusEl.textContent = "Rebuilding knowledge base…";
+
+        try {
+            const data = await api("/dashboard/rebuild-knowledge-base", {
+            method: "POST"
+            });
+            await loadSources();
+            statusEl.textContent = data.message;
+        } catch (error) {
+            statusEl.textContent = error.message;
+        } finally {
+            button.disabled = false;
+        }
+    });
+
+    document.getElementById("logoutButton").addEventListener("click", async () => {
+      try {
+        await api("/dashboard/logout", { method: "POST" });
+      } finally {
+        dashboardPanel.hidden = true;
+        loginPanel.hidden = false;
+        sourcesEl.innerHTML = "";
+        statusEl.textContent = "Logged out.";
+      }
+    });
+
+    storeSettingsForm.addEventListener("submit", async event => {
+        event.preventDefault();
+
+        const form = new FormData(storeSettingsForm);
+        const allowedOrigins = String(form.get("allowed_origins"))
+            .split(/[\n,]/)
+            .map(origin => origin.trim())
+            .filter(Boolean);
+
+        settingsStatusEl.textContent = "Saving store settings…";
+
+        try {
+            await api("/dashboard/store-settings", {
+            method: "PUT",
+            body: JSON.stringify({
+                name: form.get("name"),
+                website_url: form.get("website_url"),
+                currency_code: form.get("currency_code"),
+                allowed_origins: allowedOrigins
+            })
+            });
+
+            await loadStoreSettings();
+            settingsStatusEl.textContent = "Store settings saved.";
+        } catch (error) {
+            settingsStatusEl.textContent = error.message;
+        }
+    });
+
+    woocommerceCredentialsForm.addEventListener("submit", async event => {
+        event.preventDefault();
+
+        const formElement = event.currentTarget;
+        const form = new FormData(formElement);
+
+        credentialsStatusEl.textContent = "Saving encrypted credentials…";
+
+        try {
+            await api("/dashboard/store-integrations/woocommerce", {
+            method: "PUT",
+            body: JSON.stringify({
+                consumerKey: form.get("consumerKey"),
+                consumerSecret: form.get("consumerSecret")
+            })
+            });
+
+            formElement.reset();
+            credentialsStatusEl.textContent = "WooCommerce credentials saved securely.";
+        } catch (error) {
+            credentialsStatusEl.textContent = error.message;
+        }
+    });
+
+    api("/dashboard/me")
+      .then(async data => {
+        showDashboard(data.user);
+        await Promise.all([loadSources(), loadStoreSettings()]);
+        })
+      .catch(() => {});
+  </script>
+</body>
+</html>

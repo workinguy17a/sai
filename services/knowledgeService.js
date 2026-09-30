@@ -7,11 +7,11 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-const INDEX_FILE = path.join(
-  process.cwd(),
-  "knowledge",
-  "index.json"
-);
+// const INDEX_FILE = path.join(
+//   process.cwd(),
+//   "knowledge",
+//   "index.json"
+// );
 
 /* ---------------------------------------
    COSINE SIMILARITY
@@ -46,24 +46,27 @@ function cosineSimilarity(a, b) {
    LOAD KNOWLEDGE INDEX
 --------------------------------------- */
 
-async function loadKnowledgeIndex() {
+async function loadKnowledgeIndex(storeId) {
+  const normalizedStoreId = String(storeId ?? "");
+
+  if (!/^[1-9]\d*$/.test(normalizedStoreId)) {
+    throw new Error("A valid storeId is required for knowledge search.");
+  }
+
+  const indexFile = path.join(
+    process.cwd(),
+    "knowledge",
+    "stores",
+    normalizedStoreId,
+    "index.json"
+  );
+
   try {
-    const raw = await fs.readFile(
-      INDEX_FILE,
-      "utf8"
-    );
-
+    const raw = await fs.readFile(indexFile, "utf8");
     return JSON.parse(raw);
-
   } catch (error) {
-    console.error(
-      "Failed to load knowledge index:",
-      error.message
-    );
-
-    return {
-      chunks: []
-    };
+    console.error("Failed to load knowledge index:", error.message);
+    return { chunks: [] };
   }
 }
 
@@ -86,6 +89,7 @@ async function createQueryEmbedding(query) {
 --------------------------------------- */
 
 export async function searchKnowledge(
+  storeId,
   query,
   options = {}
 ) {
@@ -100,7 +104,12 @@ export async function searchKnowledge(
   }
 
   const index =
-    await loadKnowledgeIndex();
+    await loadKnowledgeIndex(storeId);
+
+  if (Number(index.store_id) !== Number(storeId)) {
+    console.error(`Knowledge index does not match store ${storeId}.`);
+    return [];
+  }
 
   if (
     !index.chunks ||
