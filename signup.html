@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create your Sai account</title>
+  <style>
+    :root{--ink:#20231f;--muted:#788078;--line:#e6e8e2;--canvas:#f5f6f2;--accent:#a87432}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:22px;background:var(--canvas);color:var(--ink);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}button,input{font:inherit}input{width:100%;min-height:42px;margin-top:5px;border:1px solid #dfe3dc;border-radius:9px;padding:10px 12px;outline:none}input:focus{border-color:#b9884b;box-shadow:0 0 0 3px #a874321c}button{border:1px solid var(--ink);border-radius:9px;padding:10px 14px;background:var(--ink);color:#fff;cursor:pointer}button:disabled{opacity:.65;cursor:wait}.card{width:min(100%,620px);padding:clamp(22px,5vw,38px);border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 18px 55px #24282012}.mark{display:grid;width:38px;height:38px;place-items:center;border-radius:11px;background:var(--accent);color:#fff;font-weight:800}.eyebrow{margin:12px 0 4px;color:var(--accent);font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}h1{margin:0;font-size:26px;letter-spacing:-.04em}header p:last-child{margin:7px 0 22px;color:var(--muted)}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.form-grid label{display:grid;align-content:start;color:#596157;font-size:12px;font-weight:650}.wide{grid-column:1/-1}.hint{margin-top:5px;color:var(--muted);font-size:11px;font-weight:400}.actions{display:flex;align-items:center;gap:12px;margin-top:18px}.status{min-height:22px;margin:15px 0 0;color:#a23e32}.success{color:#347452}.signin{margin:18px 0 0;color:var(--muted);font-size:12px}.signin a{color:#805921;font-weight:700}#submitted[hidden]{display:none}@media(max-width:520px){.form-grid{grid-template-columns:1fr}.wide{grid-column:auto}.actions{align-items:flex-start;flex-direction:column}}
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="mark">S</div><p class="eyebrow">Sai · Store assistant</p>
+    <header><h1>Create your store account</h1><p>Tell us about your store. Your request will be reviewed before the account is activated.</p></header>
+    <form id="signupForm">
+      <div class="form-grid">
+        <label>Store name<input name="name" maxlength="120" autocomplete="organization" required></label>
+        <label>Store website URL<input name="website_url" type="url" placeholder="https://store.example" required></label>
+        <label>Currency code<input name="currency_code" maxlength="3" placeholder="USD" required><span class="hint">Enter a three-letter code, such as GBP, USD, or EUR.</span></label>
+        <label>Ecommerce platform<input value="WooCommerce (currently supported)" readonly aria-readonly="true"></label>
+        <label class="wide">Owner email<input name="email" type="email" autocomplete="email" required></label>
+        <label>Password<input name="password" type="password" minlength="12" autocomplete="new-password" required><span class="hint">Use at least 12 characters.</span></label>
+        <label>Confirm password<input name="confirm_password" type="password" minlength="12" autocomplete="new-password" required></label>
+      </div>
+      <div class="actions"><button id="submitButton" type="submit">Submit store for approval</button><span class="hint">Your store and widget will remain inactive until approved.</span></div>
+    </form>
+    <section id="submitted" hidden><h2>Request submitted</h2><p>Your store is pending platform approval. You can sign in once it has been approved.</p></section>
+    <p id="status" class="status" role="status"></p>
+    <p class="signin">Already have a store account? <a href="/dashboard-ui">Sign in</a></p>
+  </main>
+  <script>
+    const signupForm = document.getElementById("signupForm");
+    const statusEl = document.getElementById("status");
+    const submitButton = document.getElementById("submitButton");
+    signupForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const form = new FormData(signupForm);
+      if (form.get("password") !== form.get("confirm_password")) {
+        statusEl.textContent = "Passwords do not match.";
+        return;
+      }
+      submitButton.disabled = true;
+      statusEl.textContent = "Submitting your store request…";
+      try {
+        const response = await fetch("/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: form.get("name"),
+            website_url: form.get("website_url"),
+            currency_code: form.get("currency_code"),
+            email: form.get("email"),
+            password: form.get("password")
+          })
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.message || "Could not submit your request.");
+        signupForm.hidden = true;
+        document.getElementById("submitted").hidden = false;
+        statusEl.textContent = "";
+      } catch (error) {
+        statusEl.textContent = error.message;
+        submitButton.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

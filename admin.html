@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sai Platform Admin</title>
+  <style>
+    :root{--ink:#20231f;--muted:#788078;--line:#e6e8e2;--paper:#fff;--canvas:#f5f6f2;--accent:#a87432}
+    *{box-sizing:border-box}body{margin:0;min-width:320px;background:var(--canvas);color:var(--ink);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}[hidden]{display:none!important}
+    button,input{font:inherit}button{border:1px solid var(--line);border-radius:9px;padding:9px 13px;background:#fff;color:var(--ink);cursor:pointer}button:hover{background:#f6f6f2;border-color:#cbd0c7}input{min-height:42px;width:100%;border:1px solid #dfe3dc;border-radius:9px;padding:10px 12px;outline:none}input:focus{border-color:#b9884b;box-shadow:0 0 0 3px #a874321c}
+    .shell{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:100vh}.sidebar{position:sticky;top:0;display:flex;height:100vh;flex-direction:column;padding:24px 16px;background:#222720;color:#f7f6f1}.brand{display:flex;align-items:center;gap:11px;padding:0 9px 30px}.brand-mark{display:grid;width:36px;height:36px;place-items:center;border-radius:11px;background:var(--accent);font-weight:800}.brand strong{display:block}.brand small{color:#aab0a6;font-size:10px;letter-spacing:.1em}.nav-label,.eyebrow{color:#929a90;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}.nav-label{padding:0 11px}.admin-nav{display:grid;gap:5px}.nav-item{display:flex;align-items:center;gap:11px;width:100%;padding:10px 12px;border:0;border-radius:9px;background:transparent;color:#c5cac1;text-align:left}.nav-item:hover,.nav-item.active{background:#ffffff14;color:#fff}.nav-icon{width:19px;text-align:center;color:#d0a76d;font-size:16px}.sidebar-foot{margin-top:auto;padding:14px 10px;border-top:1px solid #ffffff1b;color:#c5cac1;font-size:12px;overflow-wrap:anywhere}.sidebar-foot button{margin-top:12px;width:100%;background:transparent;border-color:#ffffff2b;color:#fff;text-align:left}
+    main{width:100%;max-width:1500px;margin:auto;padding:38px clamp(22px,4vw,64px) 64px}.topline{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:30px}.topline p{margin:0;color:var(--muted);font-size:12px}.store-pill{padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#596157;font-size:12px}.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:23px}.page-head h1{margin:0;font-size:27px;letter-spacing:-.04em}.page-head p{margin:5px 0 0;color:var(--muted)}.head-actions{display:flex;gap:8px}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:22px}.metric,.store-card,.create-panel{border:1px solid var(--line);border-radius:13px;background:var(--paper);box-shadow:0 2px 5px #252b2210}.metric{padding:17px 19px}.metric span{display:block;color:var(--muted);font-size:12px}.metric strong{display:block;margin-top:5px;font-size:25px;letter-spacing:-.04em}.toolbar{display:flex;gap:10px;margin-bottom:14px}.toolbar input{max-width:420px}.store-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px}.store-card{padding:18px}.card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.card-head h2{margin:0;font-size:16px}.store-id{color:var(--muted);font-size:11px}.store-url{margin:8px 0;color:#5a6258;font-size:12px;overflow-wrap:anywhere}.store-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:13px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.store-meta span{display:block;color:var(--muted);font-size:11px}.store-meta strong{display:block;margin-top:2px;font-size:13px}.integration-list{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}.badge{padding:4px 8px;border-radius:999px;background:#eff1eb;color:#687064;font-size:10px;font-weight:700}.badge.ready{background:#e7f4ec;color:#347452}.badge.pending{background:#fff2dc;color:#9a6420}.store-card button{margin:2px 6px 2px 0}.empty{padding:26px;border:1px dashed #d5dacf;border-radius:12px;background:#ffffff8c;color:var(--muted);text-align:center}.error{min-height:20px;margin:12px 0;color:#a23e32}.create-panel{margin:0 0 18px;padding:20px}.create-panel h2{margin-bottom:4px;font-size:17px}.create-panel p{color:var(--muted)}.create-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.create-form label{display:grid;gap:5px;color:#596157;font-size:12px;font-weight:650}.create-form .form-wide{grid-column:1/-1}.create-form .form-actions{display:flex;align-items:center;gap:8px}.create-form button[type=submit]{background:#20231f;color:#fff;border-color:#20231f}.empty{padding:26px;border:1px dashed #d5dacf;border-radius:12px;background:#ffffff8c;color:var(--muted);text-align:center}.admin-view{min-width:0}.quick-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.quick-grid button{display:grid;justify-items:start;gap:7px;min-height:150px;padding:19px;border:1px solid var(--line);border-radius:13px;background:#fff;text-align:left;box-shadow:0 2px 5px #252b2210}.quick-grid button:hover{border-color:#d8c2a1;transform:translateY(-1px)}.quick-grid strong{font-size:15px}.quick-grid small{color:var(--muted);font-size:12px}.quick-icon{display:grid;width:32px;height:32px;place-items:center;border-radius:10px;background:#f5ebdc;color:#805921;font-size:17px}.admin-conversation-list{display:grid;gap:12px}.admin-conversation-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:16px 18px;border:1px solid var(--line);border-radius:13px;background:#fff}.admin-conversation-card h2{margin:0;font-size:14px}.admin-conversation-card p{margin:4px 0;color:#596157;overflow-wrap:anywhere}.admin-conversation-meta{color:var(--muted);font-size:11px}.admin-conversation-actions{display:flex;align-items:center;gap:8px}.login-card{width:min(420px,calc(100% - 32px));margin:12vh auto;padding:34px;border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 18px 55px #24282012}.login-card h1{margin:12px 0 4px;font-size:24px}.login-card p{color:var(--muted)}.login-card input{margin:8px 0}.login-card button{margin-top:7px;background:#20231f;color:#fff;border-color:#20231f}
+    @media(max-width:760px){.shell{grid-template-columns:70px minmax(0,1fr)}.sidebar{align-items:center;padding:18px 8px}.brand{padding:0 0 25px}.brand-copy,.nav-label,.nav-text,.sidebar-foot{display:none}.nav-item{justify-content:center;padding:11px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.store-grid{grid-template-columns:1fr}main{padding:24px 15px 38px}.create-form{grid-template-columns:1fr}.create-form .form-wide{grid-column:auto}.quick-grid{grid-template-columns:1fr}.admin-conversation-card{grid-template-columns:1fr}.admin-conversation-actions{justify-content:flex-start}}
+    @media(max-width:540px){.shell{display:block;padding-bottom:60px}.sidebar{position:fixed;z-index:5;inset:auto 0 0;width:100%;height:60px;flex-direction:row;justify-content:center;padding:5px 12px}.brand{display:none}.sidebar nav{display:grid;width:100%;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px}.nav-item{display:flex;flex-direction:column;gap:1px;justify-content:center;padding:5px 2px;font-size:9px}.nav-text{display:block}main{padding-top:20px}.topline{align-items:flex-start}.store-pill{max-width:50%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.toolbar{flex-direction:column}.toolbar input{max-width:none}}
+  </style>
+</head>
+<body>
+  <section id="loginPanel" class="login-card">
+    <div class="brand-mark">S</div><p class="eyebrow">Sai · Platform console</p>
+    <h1>Admin sign in</h1><p>Manage your ecommerce assistant stores.</p>
+    <form id="loginForm"><input name="email" type="email" placeholder="Admin email" autocomplete="username" required><input name="password" type="password" placeholder="Password" autocomplete="current-password" required><button type="submit">Sign in to platform</button></form>
+    <p id="loginStatus" class="error" role="status"></p>
+  </section>
+
+  <div id="adminApp" class="shell" hidden>
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">S</span><span class="brand-copy"><strong>Sai Console</strong><small>PLATFORM ADMIN</small></span></div>
+      <p class="nav-label">Platform</p>
+      <nav class="admin-nav" aria-label="Platform navigation">
+        <button class="nav-item active" type="button" data-admin-view="overview"><span class="nav-icon">⌂</span><span class="nav-text">Overview</span></button>
+        <button class="nav-item" type="button" data-admin-view="stores"><span class="nav-icon">▦</span><span class="nav-text">Stores</span></button>
+        <button class="nav-item" type="button" data-admin-view="conversations"><span class="nav-icon">▤</span><span class="nav-text">Conversations</span></button>
+        <button class="nav-item" type="button" data-admin-view="create"><span class="nav-icon">＋</span><span class="nav-text">Create store</span></button>
+      </nav>
+      <div class="sidebar-foot"><span id="adminEmail"></span><button id="logoutButton" type="button">Log out</button></div>
+    </aside>
+    <main>
+      <div class="topline"><div><p class="eyebrow">Sai · Platform administration</p><p>Manage your stores and customer activity.</p></div><div class="store-pill">Platform workspace</div></div>
+
+      <section id="overviewView" class="admin-view">
+        <header class="page-head"><div><p class="eyebrow">Your workspace</p><h1>Overview</h1><p>A quick view of your ecommerce assistant network.</p></div><button id="refreshButton" type="button">↻ &nbsp;Refresh</button></header>
+        <section class="metrics" aria-label="Platform summary"><article class="metric"><span>Total stores</span><strong id="totalStores">—</strong></article><article class="metric"><span>Pending approval</span><strong id="pendingStores">—</strong></article><article class="metric"><span>Stores with integrations</span><strong id="connectedStores">—</strong></article><article class="metric"><span>Customer conversations</span><strong id="totalConversations">—</strong></article></section>
+        <div class="quick-grid">
+          <button type="button" data-open-view="stores"><span class="quick-icon">▦</span><strong>Manage stores</strong><small>Review requests and open a store workspace.</small></button>
+          <button type="button" data-open-view="conversations"><span class="quick-icon">▤</span><strong>View conversations</strong><small>See recent customer chats across stores.</small></button>
+          <button type="button" data-open-view="create"><span class="quick-icon">＋</span><strong>Create a store</strong><small>Set up a client store and owner account.</small></button>
+        </div>
+      </section>
+
+      <section id="storesView" class="admin-view" hidden>
+        <header class="page-head"><div><p class="eyebrow">Platform management</p><h1>Stores</h1><p>Approve signups or open a store to manage its settings, inbox, and knowledge base.</p></div><button id="refreshStoresButton" type="button">↻ &nbsp;Refresh</button></header>
+        <div class="toolbar"><input id="storeSearch" type="search" placeholder="Search stores, URLs, or owner emails" aria-label="Search stores"></div>
+        <p id="pageStatus" class="error" role="status"></p><section id="storeGrid" class="store-grid" aria-live="polite"></section>
+      </section>
+
+      <section id="conversationsView" class="admin-view" hidden>
+        <header class="page-head"><div><p class="eyebrow">Customer care</p><h1>Conversations</h1><p>Recent customer chats from every active store.</p></div><button id="refreshConversationsButton" type="button">↻ &nbsp;Refresh</button></header>
+        <div class="toolbar"><input id="conversationSearch" type="search" placeholder="Search store, customer, or message" aria-label="Search conversations"></div>
+        <p id="conversationStatus" class="error" role="status"></p><section id="adminConversationList" class="admin-conversation-list" aria-live="polite"></section>
+      </section>
+
+      <section id="createStoreView" class="admin-view" hidden>
+        <header class="page-head"><div><p class="eyebrow">Client onboarding</p><h1>Create store</h1><p>Create a store and its owner login. The store will be active immediately.</p></div></header>
+        <section class="create-panel">
+          <form id="createStoreForm" class="create-form">
+            <label>Store name<input name="name" maxlength="120" required></label>
+            <label>Store website URL<input name="website_url" type="url" placeholder="https://store.example" required></label>
+            <label>Currency code<input name="currency_code" maxlength="3" placeholder="GBP" required></label>
+            <label>Owner email<input name="owner_email" type="email" required></label>
+            <label class="form-wide">Initial owner password<input name="owner_password" type="password" minlength="12" autocomplete="new-password" required><span class="muted">At least 12 characters. Share it directly with the owner; email invitations are not set up yet.</span></label>
+            <div class="form-actions form-wide"><button type="submit">Create store and owner</button><span id="createStoreStatus" class="muted" role="status"></span></div>
+          </form>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const loginPanel = document.getElementById("loginPanel");
+    const adminApp = document.getElementById("adminApp");
+    const loginStatus = document.getElementById("loginStatus");
+    const pageStatus = document.getElementById("pageStatus");
+    const storeGrid = document.getElementById("storeGrid");
+    const storeSearch = document.getElementById("storeSearch");
+    const createStoreForm = document.getElementById("createStoreForm");
+    const createStoreStatus = document.getElementById("createStoreStatus");
+    const conversationList = document.getElementById("adminConversationList");
+    const conversationSearch = document.getElementById("conversationSearch");
+    const conversationStatus = document.getElementById("conversationStatus");
+    let allConversations = [];
+    let allStores = [];
+    let adminUser = null;
+
+    async function api(url, options = {}) {
+      const response = await fetch(url, {
+        credentials: "same-origin",
+        ...options,
+        headers: { ...(options.body ? { "Content-Type": "application/json" } : {}), ...(options.headers || {}) }
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || "Request failed.");
+      return data;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, char => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[char]);
+    }
+
+    function setView(viewName) {
+      document.querySelectorAll(".admin-view").forEach(view => {
+        view.hidden = view.id !== `${viewName}View`;
+      });
+      document.querySelectorAll("[data-admin-view]").forEach(button => {
+        button.classList.toggle("active", button.dataset.adminView === viewName);
+      });
+      if (viewName === "stores") renderStores();
+      if (viewName === "conversations" && !allConversations.length) loadAdminConversations();
+      if (viewName === "create") createStoreForm.elements.name.focus();
+    }
+
+    async function loadAdminConversations() {
+      conversationStatus.textContent = "Loading conversations…";
+      try {
+        const data = await api("/dashboard/admin/conversations");
+        allConversations = data.conversations;
+        renderAdminConversations();
+        conversationStatus.textContent = "";
+      } catch (error) {
+        conversationStatus.textContent = error.message;
+      }
+    }
+
+    function renderAdminConversations() {
+      const query = conversationSearch.value.trim().toLowerCase();
+      const filtered = allConversations.filter(conversation => [
+        conversation.store_name, conversation.customer_name, conversation.customer_email,
+        conversation.customer_phone, conversation.latest_customer_message, conversation.id
+      ].join(" ").toLowerCase().includes(query));
+      conversationList.innerHTML = filtered.map(conversation => {
+        const customer = conversation.customer_name || conversation.customer_email || "Customer";
+        const date = conversation.last_message_at
+          ? new Date(conversation.last_message_at).toLocaleString()
+          : "No messages yet";
+        const status = (conversation.crm_status || "new").replaceAll("_", " ");
+        return `<article class="admin-conversation-card">
+          <div><h2>${escapeHtml(customer)} <span class="store-id">· Chat #${escapeHtml(conversation.id)}</span></h2>
+            <p>${escapeHtml(conversation.latest_customer_message || "No customer message yet")}</p>
+            <div class="admin-conversation-meta">${escapeHtml(conversation.store_name)} · ${escapeHtml(date)} · ${escapeHtml(conversation.message_count)} messages · ${escapeHtml(status)}</div>
+          </div>
+          <div class="admin-conversation-actions"><button type="button" data-open-admin-conversation="${escapeHtml(conversation.id)}" data-store-id="${escapeHtml(conversation.store_id)}">Open store inbox →</button></div>
+        </article>`;
+      }).join("") || '<div class="empty">No conversations match your search.</div>';
+    }
+
+    document.querySelectorAll("[data-admin-view], [data-open-view]").forEach(button => {
+      button.addEventListener("click", () => setView(button.dataset.adminView || button.dataset.openView));
+    });
+    conversationSearch.addEventListener("input", renderAdminConversations);
+    conversationList.addEventListener("click", async event => {
+      const button = event.target.closest("[data-open-admin-conversation]");
+      if (!button) return;
+      button.disabled = true;
+      try {
+        await api("/dashboard/admin/select-store", {
+          method: "POST",
+          body: JSON.stringify({ storeId: button.dataset.storeId })
+        });
+        window.location.href = `/dashboard-ui?conversation=${encodeURIComponent(button.dataset.openAdminConversation)}`;
+      } catch (error) {
+        conversationStatus.textContent = error.message;
+        button.disabled = false;
+      }
+    });
+
+    async function loadStores() {
+      pageStatus.textContent = "Loading stores…";
+      try {
+        const data = await api("/dashboard/admin/stores");
+        allStores = data.stores;
+        document.getElementById("totalStores").textContent = allStores.length;
+        document.getElementById("pendingStores").textContent = allStores.filter(store => store.account_status === "pending_approval").length;
+        document.getElementById("connectedStores").textContent = allStores.filter(store => (store.integrations || []).some(item => item.configured)).length;
+        document.getElementById("totalConversations").textContent = allStores.reduce((sum, store) => sum + Number(store.conversation_count || 0), 0);
+        renderStores();
+        pageStatus.textContent = "";
+      } catch (error) {
+        pageStatus.textContent = error.message;
+      }
+    }
+
+    function renderStores() {
+      const query = storeSearch.value.trim().toLowerCase();
+      const filtered = allStores.filter(store => [store.name, store.website_url, store.owner_email, store.platform].join(" ").toLowerCase().includes(query));
+      storeGrid.innerHTML = filtered.map(store => {
+        const integrations = (store.integrations || []).map(item => `<span class="badge ${item.configured ? "ready" : ""}">${escapeHtml(item.platform)} · ${item.configured ? "Connected" : "Not set up"}</span>`).join("") || '<span class="badge">No integrations</span>';
+        const activity = store.last_activity_at ? new Date(store.last_activity_at).toLocaleDateString() : "No activity yet";
+        const accountStatus = store.account_status || "active";
+        const approveAction = accountStatus === "pending_approval"
+          ? `<button type="button" data-approve-store="${escapeHtml(store.id)}">Approve request</button>`
+          : "";
+        return `<article class="store-card">
+          <div class="card-head"><h2>${escapeHtml(store.name)}</h2><span class="badge ${accountStatus === "pending_approval" ? "pending" : accountStatus === "active" ? "ready" : ""}">${escapeHtml(accountStatus.replaceAll("_", " "))}</span></div>
+          <div class="store-id">Store #${escapeHtml(store.id)}</div>
+          <p class="store-url">${escapeHtml(store.website_url)}</p>
+          <div class="store-meta"><div><span>Store owner</span><strong>${escapeHtml(store.owner_email || "Not assigned")}</strong></div><div><span>Platform</span><strong>${escapeHtml(store.platform || "—")}</strong></div><div><span>Conversations</span><strong>${escapeHtml(store.conversation_count || 0)}</strong></div><div><span>Last activity</span><strong>${escapeHtml(activity)}</strong></div></div>
+          <div class="integration-list">${integrations}</div>
+          ${approveAction}<button type="button" data-manage-store="${escapeHtml(store.id)}">Manage store&nbsp; →</button>
+        </article>`;
+      }).join("") || '<div class="empty">No stores match your search.</div>';
+    }
+
+    document.getElementById("loginForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const form = new FormData(event.currentTarget);
+      loginStatus.textContent = "Signing in…";
+      try {
+        const data = await api("/dashboard/admin/login", { method:"POST", body:JSON.stringify({ email:form.get("email"), password:form.get("password") }) });
+        adminUser = data.admin;
+        showApp();
+        await Promise.all([loadStores(), loadAdminConversations()]);
+      } catch (error) { loginStatus.textContent = error.message; }
+    });
+
+    function showApp() {
+      loginPanel.hidden = true;
+      adminApp.hidden = false;
+      document.getElementById("adminEmail").textContent = adminUser?.email || "Platform admin";
+    }
+
+    document.getElementById("refreshButton").addEventListener("click", async () => {
+      await Promise.all([loadStores(), loadAdminConversations()]);
+    });
+    document.getElementById("refreshStoresButton").addEventListener("click", loadStores);
+    document.getElementById("refreshConversationsButton").addEventListener("click", loadAdminConversations);
+    createStoreForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const form = new FormData(createStoreForm);
+      createStoreStatus.textContent = "Creating store and owner…";
+      try {
+        const data = await api("/dashboard/admin/stores", {
+          method: "POST",
+          body: JSON.stringify({
+            name: form.get("name"),
+            website_url: form.get("website_url"),
+            currency_code: form.get("currency_code"),
+            owner_email: form.get("owner_email"),
+            owner_password: form.get("owner_password")
+          })
+        });
+        createStoreForm.reset();
+        createStoreStatus.textContent = `Created ${data.store.name} (Store #${data.store.id}); owner: ${data.store.owner_email}.`;
+        await loadStores();
+        setView("stores");
+      } catch (error) {
+        createStoreStatus.textContent = error.message;
+      }
+    });
+    storeSearch.addEventListener("input", renderStores);
+    storeGrid.addEventListener("click", async event => {
+      const approveButton = event.target.closest("[data-approve-store]");
+      if (approveButton) {
+        approveButton.disabled = true;
+        pageStatus.textContent = "Approving store…";
+        try {
+          const data = await api(`/dashboard/admin/stores/${encodeURIComponent(approveButton.dataset.approveStore)}/approve`, { method: "POST" });
+          pageStatus.textContent = data.message;
+          await loadStores();
+        } catch (error) {
+          pageStatus.textContent = error.message;
+          approveButton.disabled = false;
+        }
+        return;
+      }
+      const button = event.target.closest("[data-manage-store]");
+      if (!button) return;
+      button.disabled = true;
+      pageStatus.textContent = "Opening store dashboard…";
+      try {
+        await api("/dashboard/admin/select-store", { method:"POST", body:JSON.stringify({ storeId:button.dataset.manageStore }) });
+        window.location.href = "/dashboard-ui";
+      } catch (error) { pageStatus.textContent = error.message; button.disabled = false; }
+    });
+    document.getElementById("logoutButton").addEventListener("click", async () => {
+      try { await api("/dashboard/admin/logout", { method:"POST" }); } catch (error) { pageStatus.textContent = error.message; }
+      adminApp.hidden = true;
+      loginPanel.hidden = false;
+      document.getElementById("loginForm").reset();
+      loginStatus.textContent = "";
+    });
+
+    api("/dashboard/admin/me").then(data => {
+      adminUser = data.admin;
+      showApp();
+      return Promise.all([loadStores(), loadAdminConversations()]);
+    }).catch(() => {});
+  </script>
+</body>
+</html>

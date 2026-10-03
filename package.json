@@ -8,6 +8,7 @@
     "start": "node server.js",
     "knowledge:build": "node scripts/buildKnowledgeBase.js",
     "knowledge:test": "node scripts/testKnowledge.js",
+    "admin:create": "node scripts/createPlatformAdmin.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -23,6 +24,7 @@
     "express": "^5.2.1",
     "express-session": "^1.19.0",
     "multer": "^2.4.0",
+    "nodemailer": "^10.0.13",
     "openai": "^6.39.0",
     "pdf-parse": "^2.4.5",
     "pg": "^8.23.0"

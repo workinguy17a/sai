@@ -50,9 +50,9 @@ export async function getStoreByWidgetKey(widgetKey, origin) {
   }
 
   const result = await pool.query(
-    `SELECT id, name, website_url, platform, currency_code, allowed_origins
+    `SELECT id, name, website_url, platform, currency_code, allowed_origins, account_status
      FROM stores
-     WHERE public_widget_key = $1`,
+     WHERE public_widget_key = $1 AND account_status = 'active'`,
     [widgetKey]
   );
 

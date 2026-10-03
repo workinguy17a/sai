@@ -229,6 +229,43 @@
                 border-radius: 0;
             }
         }
+        #leadCapturePrompt {
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    width: calc(100% - 30px);
+    max-width: none;
+    margin: 0 15px 12px;
+}
+
+#leadCaptureForm label {
+    display: block;
+    margin: 10px 0;
+}
+
+#leadCaptureForm input:not([type="checkbox"]) {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 10px;
+    margin-top: 4px;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    font: inherit;
+}
+
+#leadCaptureForm input[type="checkbox"] {
+    width: auto;
+    margin-right: 6px;
+}
+
+#leadCaptureForm button {
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 6px;
+    background: #8a642f;
+    color: white;
+    cursor: pointer;
+}
     </style>
 </head>
 
@@ -246,7 +283,43 @@
             Hi, I’m Sai, your store assistant. I’m here to help you through your shopping journey. Ask me about products, orders, or store information.
         </div>
 
+        <div id="leadCapturePrompt" class="message ai-message" hidden>
+            <p>Before I continue, please share your name, email, and phone so the store can follow up about this conversation.</p>
+
+            <form id="leadCaptureForm">
+                <label>
+                Name
+                <input name="name" type="text" maxlength="120" autocomplete="name" required>
+                </label>
+                <br>
+
+                <label>
+                Email
+                <input name="email" type="email" maxlength="254" autocomplete="email" required>
+                </label>
+                <br>
+
+                <label>
+                Phone
+                <input name="phone" type="tel" maxlength="30" autocomplete="tel" required>
+                </label>
+                <br>
+
+                <label>
+                <input name="consentToContact" type="checkbox" required>
+                I agree to receive a copy of this conversation by email and be contacted by the store about it.
+                </label>
+                <br>
+
+                <button type="submit">Send details</button>
+                <button id="skipLeadCapture" type="button">Not now</button>
+                <p id="leadCaptureStatus" class="muted"></p>
+            </form>
+        </div>
+
     </div>
+
+
 
     <div class="chat-input">
 
@@ -256,9 +329,8 @@
             placeholder="Ask about our knives..."
         >
 
-        <button onclick="sendMessage()">
-            Send
-        </button>
+        <button id="sendButton" onclick="sendMessage()">Send</button>
+        <button id="endChatButton" type="button">End chat</button>
 
     </div>
 
@@ -268,14 +340,26 @@
 <script>
 const widgetKey = "02f34ac7-23cb-4053-b924-518b56e8525e";
  let conversationHistory = [];
- 
+
  let visitorId = localStorage.getItem("saiVisitorId");
+
+ const leadSubmittedKey = `saiLeadSubmitted:${widgetKey}:${visitorId}`;
+const questionCountKey = `saiQuestionCount:${widgetKey}:${visitorId}`;
+
+let customerQuestionCount = Number(localStorage.getItem(questionCountKey)) || 0;
+let leadSubmitted = localStorage.getItem(leadSubmittedKey) === "true";
+let leadPromptShownThisPage = false;
+let pendingMessage = null;
+let chatEnded = false;
+let inactivityWarningTimer = null;
+let inactivityCloseTimer = null;
+let inactivityWarningBubble = null;
 
 if (!visitorId) {
     visitorId = crypto.randomUUID();
     localStorage.setItem("saiVisitorId", visitorId);
 }
- 
+
  document
     .getElementById("messageInput")
     .addEventListener("keydown", function (event) {
@@ -303,11 +387,199 @@ if (!visitorId) {
     }).format(amount);
 }
 
-async function sendMessage() {
+function maybeShowLeadCapture() {
+  if (
+    customerQuestionCount >= 3 &&
+    !leadSubmitted &&
+    !leadPromptShownThisPage
+  ) {
+    document.getElementById("leadCapturePrompt").hidden = false;
+    leadPromptShownThisPage = true;
+  }
+}
 
+document
+  .getElementById("leadCaptureForm")
+  .addEventListener("submit", async event => {
+    event.preventDefault();
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const status = document.getElementById("leadCaptureStatus");
+    const submitButton = form.querySelector('button[type="submit"]');
+
+    status.textContent = "Saving…";
+    submitButton.disabled = true;
+
+    try {
+      const response = await fetch("http://localhost:3000/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          widgetKey,
+          visitorId,
+          name: formData.get("name"),
+          email: formData.get("email"),
+          phone: formData.get("phone"),
+          consentToContact: formData.get("consentToContact") === "on"
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Could not save your details.");
+      }
+
+      leadSubmitted = true;
+      localStorage.setItem(leadSubmittedKey, "true");
+      form.reset();
+      status.textContent = data.message;
+      const questionToResume = pendingMessage;
+        pendingMessage = null;
+
+        document.getElementById("leadCapturePrompt").hidden = true;
+        document.getElementById("messageInput").disabled = false;
+        document.querySelector(".chat-input button").disabled = false;
+
+        const thankYouMessage = document.createElement("div");
+        thankYouMessage.className = "message ai-message";
+        thankYouMessage.textContent =
+          "Thanks for sharing your details. Let me answer your question now.";
+        const chatMessages = document.getElementById("chatMessages");
+        chatMessages.appendChild(thankYouMessage);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        if (questionToResume) {
+        await sendMessage(questionToResume, true, true);
+        }
+    } catch (error) {
+      status.textContent = error.message;
+    } finally {
+      submitButton.disabled = false;
+    }
+  });
+
+document
+  .getElementById("skipLeadCapture")
+  .addEventListener("click", async () => {
+    const questionToResume = pendingMessage;
+    pendingMessage = null;
+
+    document.getElementById("leadCapturePrompt").hidden = true;
+    document.getElementById("messageInput").disabled = false;
+    document.querySelector(".chat-input button").disabled = false;
+
+    if (questionToResume) {
+      await sendMessage(questionToResume, true, true);
+    }
+  });
+  function resetInactivityTimers() {
+  clearTimeout(inactivityWarningTimer);
+  clearTimeout(inactivityCloseTimer);
+
+  if (inactivityWarningBubble) {
+    inactivityWarningBubble.remove();
+    inactivityWarningBubble = null;
+  }
+
+  if (chatEnded) return;
+
+  inactivityWarningTimer = setTimeout(() => {
+    if (chatEnded) return;
+
+    inactivityWarningBubble = document.createElement("div");
+    inactivityWarningBubble.className = "message ai-message";
+    inactivityWarningBubble.textContent =
+      "Just a heads-up: I’ll close this chat in 2 minutes if there are no new messages. Send a message to keep chatting.";
+
+    const chatMessages = document.getElementById("chatMessages");
+    chatMessages.appendChild(inactivityWarningBubble);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }, 8 * 60 * 1000);
+
+  inactivityCloseTimer = setTimeout(() => {
+    document.getElementById("endChatButton").click();
+  }, 10 * 60 * 1000);
+}
+  document.getElementById("endChatButton").addEventListener("click", async () => {
+  const endButton = document.getElementById("endChatButton");
+  const input = document.getElementById("messageInput");
+  const chatMessages = document.getElementById("chatMessages");
+
+  endButton.disabled = true;
+
+  try {
+    const response = await fetch("http://localhost:3000/chat/end", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ widgetKey, visitorId })
+    });
+
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || "Could not end the chat.");
+    }
+
+    chatEnded = true;
+    clearTimeout(inactivityWarningTimer);
+    clearTimeout(inactivityCloseTimer);
+    input.disabled = true;
+    document.getElementById("sendButton").disabled = true;
+    document.getElementById("leadCapturePrompt").hidden = true;
+
+    const notice = document.createElement("div");
+    notice.className = "message ai-message";
+    notice.textContent = data.message;
+    chatMessages.appendChild(notice);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  } catch (error) {
+    endButton.disabled = false;
+
+    const notice = document.createElement("div");
+    notice.className = "message ai-message";
+    notice.textContent = error.message || "Could not end the chat. Please try again.";
+    chatMessages.appendChild(notice);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+});
+
+async function sendMessage(messageOverride = null, bypassContactGate = false,messageAlreadyDisplayed = false) {
     const input = document.getElementById("messageInput");
-    const message = input.value.trim();
-    if (!message) {
+    const message = String(messageOverride ?? input.value).trim();
+
+    if (!message) return;
+    if (chatEnded) return;
+    resetInactivityTimers();
+    if (!bypassContactGate) {
+        customerQuestionCount += 1;
+        localStorage.setItem(questionCountKey, String(customerQuestionCount));
+    }
+
+        if (
+        !bypassContactGate &&
+        customerQuestionCount >= 3 &&
+        !leadSubmitted &&
+        !leadPromptShownThisPage
+    ) {
+        pendingMessage = message;
+
+        const chatMessages = document.getElementById("chatMessages");
+        const userBubble = document.createElement("div");
+        userBubble.className = "message user-message";
+        userBubble.textContent = message;
+        chatMessages.appendChild(userBubble);
+
+        input.value = "";
+
+        const prompt = document.getElementById("leadCapturePrompt");
+        prompt.hidden = false;
+        chatMessages.appendChild(prompt);
+        leadPromptShownThisPage = true;
+
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        input.disabled = true;
+        document.querySelector(".chat-input button").disabled = true;
         return;
     }
 
@@ -316,14 +588,26 @@ async function sendMessage() {
         content: message
     });
 
-    const chatMessages = document.getElementById("chatMessages");
+    try {
+  await fetch("http://localhost:3000/chat/activity", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ widgetKey, visitorId })
+  });
+} catch (error) {
+  console.error("Could not update chat activity:", error);
+}
 
+    const chatMessages = document.getElementById("chatMessages");
+    if (!messageAlreadyDisplayed) {
     // Show user's message
-    chatMessages.innerHTML += `
+    chatMessages.insertAdjacentHTML("beforeend", `
         <div class="message user-message">
             ${message}
         </div>
-    `;
+    `);
+    }
+
 
     // Clear input
     input.value = "";
@@ -351,11 +635,11 @@ async function sendMessage() {
 
         if (data.message) {
 
-        chatMessages.innerHTML += `
+        chatMessages.insertAdjacentHTML("beforeend", `
             <div class="message ai-message">
             ${data.message}
             </div>
-        `;
+        `);
 
         }
 
@@ -384,7 +668,7 @@ async function sendMessage() {
 
                 data.products.forEach(product => {
 
-                    chatMessages.innerHTML += `
+                    chatMessages.insertAdjacentHTML("beforeend", `
                         <div class="product-card">
 
                             ${
@@ -439,11 +723,12 @@ async function sendMessage() {
                             </div>
 
                         </div>
-                    `;
+                    `);
 
                 });
 
             }
+        //maybeShowLeadCapture();
 
         // Scroll to bottom
         chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -452,11 +737,11 @@ async function sendMessage() {
 
         console.error(error);
 
-        chatMessages.innerHTML += `
+        chatMessages.insertAdjacentHTML("beforeend", `
             <div class="message ai-message">
                 Sorry, something went wrong. Please try again.
             </div>
-        `;
+        `);
 
     }
 
